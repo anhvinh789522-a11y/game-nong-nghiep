@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Bắt Lỗi Kỹ Sư Nông Nghiệp - Online Game</title>
+  
+  <!-- CSS Framework & Libraries qua CDN miễn phí -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+    * { font-family: 'Nunito', sans-serif; -webkit-tap-highlight-color: transparent; }
+    
+    .bg-stripes {
+      background-color: #0f172a;
+      background-image: radial-gradient(#1e293b 1.5px, transparent 1.5px);
+      background-size: 24px 24px;
+    }
+    
+    .btn-bounce:active { transform: scale(0.94); }
+    
+    /* Vòng xoay Canvas */
+    #wheelCanvas {
+      filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.5));
+    }
+  </style>
+</head>
+<body class="bg-stripes text-white min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-white">
+
+  <!-- ========================================== -->
+  <!-- 1. MÀN HÌNH CHỌN VAI TRÒ (LẦN ĐẦU VÀO WEB) -->
+  <!-- ========================================== -->
+  <div id="roleScreen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
+    <div class="bg-slate-900 border-2 border-emerald-500/40 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center">
+      <div class="w-20 h-20 bg-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-emerald-500/30">
+        <i class="fa-solid fa-seedling text-4xl"></i>
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-200">
+        BẮT LỖI KỸ SƯ
+      </h1>
+      <p class="text-slate-400 text-sm mt-1 mb-6">Trò chơi tương tác Bài 5: Giá thể trồng cây</p>
+      
+      <div class="space-y-3">
+        <button onclick="chooseRole('host')" class="w-full py-4 px-6 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-2xl font-bold text-lg shadow-lg shadow-emerald-900/40 flex items-center justify-center gap-3 transition btn-bounce">
+          <i class="fa-solid fa-tv text-xl"></i>
+          Dành Cho MÁY CHIẾU (Giáo Viên)
+        </button>
+        <button onclick="chooseRole('player')" class="w-full py-4 px-6 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-emerald-300 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition btn-bounce">
+          <i class="fa-solid fa-mobile-screen-button text-xl"></i>
+          Dành Cho ĐIỆN THOẠI (Học Sinh)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 2. GIAO DIỆN HOST (GIÁO VIÊN / MÁY CHIẾU)  -->
+  <!-- ========================================== -->
+  <div id="hostView" class="hidden flex-1 flex flex-col p-4 sm:p-6 max-w-7xl mx-auto w-full">
+    <!-- Thanh Header Host -->
+    <header class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
+      <div class="flex items-center gap-3">
+        <div class="bg-emerald-500/20 text-emerald-400 p-2.5 rounded-xl border border-emerald-500/30">
+          <i class="fa-solid fa-leaf text-2xl"></i>
+        </div>
+        <div>
+          <h2 class="text-xl font-black text-emerald-400 leading-tight">BẮT LỖI KỸ SƯ NÔNG NGHIỆP</h2>
+          <p class="text-xs text-slate-400">Công nghệ 10 - Hệ thống Realtime đa người chơi</p>
+        </div>
+      </div>
+      
+      <!-- Nút chức năng: Cài đặt & Excel -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <button onclick="openSettingsModal()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition">
+          <i class="fa-solid fa-sliders text-amber-400"></i>
+          <span>Cài Đặt (<span id="hostTimerLabel">15s</span>)</span>
+        </button>
+        <button onclick="openExcelModal()" class="px-3.5 py-2 bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-600/40 rounded-xl text-xs sm:text-sm font-bold text-emerald-300 flex items-center gap-2 transition">
+          <i class="fa-solid fa-file-excel text-emerald-400"></i>
+          <span>Ngân Hàng Câu Hỏi (<span id="questionCountBadge">10</span>)</span>
+        </button>
+        <div class="bg-slate-800 px-3.5 py-2 rounded-xl border border-slate-700 flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-xs font-semibold text-slate-300">Phòng: <b id="hostRoomCode" class="text-amber-300 font-mono text-sm">----</b></span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Thân chính Host -->
+    <main class="grid grid-cols-1 lg:grid-cols-3 gap-6 my-6 flex-1">
+      
+      <!-- Cột Trái + Giữa: Bảng Thách Đấu & Câu Hỏi -->
+      <div class="lg:col-span-2 flex flex-col gap-5">
+        
+        <!-- Hộp hiển thị câu hỏi và đồng hồ -->
+        <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 relative overflow-hidden shadow-xl flex-1 flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-4">
+            <span class="px-3 py-1 bg-amber-500/20 text-amber-300 text-xs font-black uppercase tracking-wider rounded-lg border border-amber-500/30">
+              Câu số <span id="currentQuestionNum">1</span> / <span id="totalQuestionsNum">10</span>
+            </span>
+            <div class="flex items-center gap-2 bg-slate-950/80 px-4 py-1.5 rounded-full border border-slate-800">
+              <i class="fa-solid fa-stopwatch text-amber-400"></i>
+              <span id="countdownDisplay" class="font-mono text-xl font-black text-amber-300">15</span>
+              <span class="text-xs text-slate-400">giây</span>
+            </div>
+          </div>
+
+          <!-- Nội dung kỹ sư phát biểu -->
+          <div class="my-auto py-4">
+            <div class="flex items-start gap-4">
+              <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-slate-950 text-2xl flex-shrink-0 shadow-lg shadow-amber-500/20">
+                <i class="fa-solid fa-user-helmet-safety"></i>
+              </div>
+              <div class="flex-1">
+                <div class="text-xs font-bold text-amber-400 tracking-wide uppercase mb-1">Kỹ sư nông nghiệp phát biểu:</div>
+                <div id="hostQuestionText" class="text-xl sm:text-2xl font-bold leading-relaxed text-slate-100">
+                  Vui lòng bấm nút "BẮT ĐẦU CÂU HỎI" bên dưới để phát đề cho cả lớp!
+                </div>
+              </div>
+            </div>
+            
+            <!-- Phần giải thích đáp án (chỉ hiện khi hết giờ hoặc bấm công bố) -->
+            <div id="hostExplanationBox" class="hidden mt-6 p-4 rounded-2xl bg-slate-950/70 border border-slate-800 text-sm">
+              <div class="flex items-center gap-2 font-bold mb-1" id="correctAnswerBadge">
+                <i class="fa-solid fa-circle-check text-emerald-400"></i>
+                <span class="text-emerald-400 uppercase">ĐÁP ÁN CHUẨN</span>
+              </div>
+              <p id="hostExplanationText" class="text-slate-300 leading-relaxed"></p>
+            </div>
+          </div>
+
+          <!-- Khu vực nút điều khiển của Host -->
+          <div class="pt-4 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex gap-2">
+              <button onclick="prevQuestion()" class="p-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold transition btn-bounce">
+                <i class="fa-solid fa-chevron-left"></i>
+              </button>
+              <button onclick="nextQuestion()" class="p-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold transition btn-bounce">
+                <i class="fa-solid fa-chevron-right"></i>
+              </button>
+            </div>
+            <div class="flex gap-2 flex-1 sm:flex-initial justify-end">
+              <button id="startQuestionBtn" onclick="broadcastQuestion()" class="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-extrabold text-sm sm:text-base shadow-lg shadow-emerald-900/30 flex items-center gap-2 transition btn-bounce">
+                <i class="fa-solid fa-paper-plane"></i>
+                <span>PHÁT CÂU HỎI CHO HỌC SINH</span>
+              </button>
+              <button id="revealAnswerBtn" onclick="revealAnswer()" class="hidden px-5 py-3 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold text-sm sm:text-base transition btn-bounce">
+                <i class="fa-solid fa-bullhorn mr-1"></i> Công Bố Đáp Án
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Banner Vinh danh người trả lời Nhanh nhất & Đúng nhất -->
+        <div id="fastestWinnerCard" class="hidden bg-gradient-to-r from-amber-950/60 via-slate-900 to-slate-900 border-2 border-amber-500/50 rounded-3xl p-5 shadow-2xl items-center justify-between gap-4">
+          <div class="flex items-center gap-4">
+            <div class="w-14 h-14 bg-amber-500 text-slate-950 rounded-2xl flex items-center justify-center text-3xl font-black shadow-lg shadow-amber-500/30 animate-bounce">
+              ⚡
+            </div>
+            <div>
+              <span class="text-xs font-black tracking-wider text-amber-400 uppercase">PHẢN XẠ NHANH NHẤT LỚP</span>
+              <h3 id="winnerName" class="text-2xl font-black text-white">---</h3>
+              <p class="text-xs text-slate-400">Thời gian trả lời: <span id="winnerSpeed" class="text-amber-300 font-mono font-bold">0.00s</span> | Đáp án: <b id="winnerAns" class="text-emerald-400">ĐÚNG</b></p>
+            </div>
+          </div>
+          <button onclick="openSpinWheelModal()" class="px-5 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-xl text-sm shadow-lg shadow-orange-500/30 flex items-center gap-2 transition btn-bounce flex-shrink-0">
+            <i class="fa-solid fa-dharmachakra text-lg"></i>
+            QUAY THƯỞNG ĐIỂM CỘNG!
+          </button>
+        </div>
+      </div>
+
+      <!-- Cột Phải: Mã QR tham gia & Bảng xếp hạng Realtime -->
+      <div class="flex flex-col gap-5">
+        
+        <!-- Khối Mã QR -->
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 text-center shadow-lg">
+          <div class="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-2">QUÉT MÃ QR ĐỂ THAM GIA</div>
+          <div class="bg-white p-3 rounded-2xl inline-block shadow-inner mx-auto mb-3">
+            <div id="hostQrCodeContainer"></div>
+          </div>
+          <div class="text-xs text-slate-300">
+            Hoặc truy cập link, nhập mã: <b id="hostRoomCodeText" class="text-emerald-400 font-mono text-base">----</b>
+          </div>
+          <div class="mt-3 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+            <span>Sĩ số trực tuyến:</span>
+            <span class="bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-md" id="onlinePlayerCount">0 học sinh</span>
+          </div>
+        </div>
+
+        <!-- Bảng xếp hạng trực tiếp -->
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 flex-1 flex flex-col shadow-lg">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-extrabold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+              <i class="fa-solid fa-trophy text-amber-400"></i>
+              BẢNG VÀNG THÀNH TÍCH
+            </h3>
+            <span class="text-xs text-slate-500 font-semibold">Điểm tích lũy</span>
+          </div>
+          <div id="leaderboardList" class="space-y-2 flex-1 overflow-y-auto max-h-[320px] pr-1">
+            <div class="text-center py-8 text-xs text-slate-500">Chưa có điểm nào được ghi nhận</div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 3. GIAO DIỆN HỌC SINH (PLAYER TRÊN MOBILE) -->
+  <!-- ========================================== -->
+  <div id="playerView" class="hidden flex-1 flex flex-col p-4 max-w-lg mx-auto w-full justify-between">
+    
+    <!-- Màn hình đăng nhập của học sinh -->
+    <div id="playerLoginBox" class="my-auto bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl text-center">
+      <div class="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-emerald-500/30">
+        <i class="fa-solid fa-user-graduate text-3xl"></i>
+      </div>
+      <h2 class="text-2xl font-black text-white mb-1">THAM GIA THI ĐẤU</h2>
+      <p class="text-xs text-slate-400 mb-6">Nhập tên hoặc đội của bạn để bắt đầu</p>
+      
+      <div class="space-y-3 text-left">
+        <div>
+          <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Mã Phòng</label>
+          <input type="text" id="playerRoomInput" placeholder="Nhập mã 4 chữ số (VD: 8899)" class="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-center font-mono text-lg font-bold text-amber-300 focus:outline-none focus:border-emerald-500 uppercase">
+        </div>
+        <div>
+          <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Tên Bạn / Tên Đội</label>
+          <input type="text" id="playerNameInput" placeholder="VD: Nam Trương / Tổ 1" maxlength="25" class="w-full px-4 py-3 bg-slate-950 border border-slate-700 rounded-xl text-base font-bold text-white focus:outline-none focus:border-emerald-500">
+        </div>
+        <button onclick="playerJoinRoom()" class="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-black text-lg shadow-lg shadow-emerald-900/40 transition btn-bounce mt-2">
+          VÀO PHÒNG CHƠI 🚀
+        </button>
+      </div>
+    </div>
+
+    <!-- Màn hình chơi chính của học sinh -->
+    <div id="playerGameArea" class="hidden flex-1 flex flex-col justify-between py-2">
+      <!-- Header Mobile -->
+      <div
