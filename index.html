@@ -243,4 +243,922 @@
     <!-- Màn hình chơi chính của học sinh -->
     <div id="playerGameArea" class="hidden flex-1 flex flex-col justify-between py-2">
       <!-- Header Mobile -->
-      <div
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black">
+            <i class="fa-solid fa-user"></i>
+          </div>
+          <div>
+            <div id="playerDisplayMyName" class="font-black text-sm text-white leading-tight">---</div>
+            <div class="text-[11px] text-slate-400">Điểm: <b id="playerDisplayMyScore" class="text-amber-400 font-bold">0.00</b></div>
+          </div>
+        </div>
+        <div class="bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700 flex items-center gap-2">
+          <i class="fa-solid fa-stopwatch text-amber-400 text-xs"></i>
+          <span id="playerCountdown" class="font-mono text-base font-black text-amber-300">--</span>
+        </div>
+      </div>
+
+      <!-- Trạng thái chờ câu hỏi -->
+      <div id="playerWaitingState" class="my-auto text-center py-12">
+        <div class="w-20 h-20 bg-slate-800 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-700 animate-pulse">
+          <i class="fa-solid fa-satellite-dish text-3xl"></i>
+        </div>
+        <h3 class="text-xl font-bold text-slate-200">ĐÃ SẴN SÀNG!</h3>
+        <p class="text-xs text-slate-400 mt-2 max-w-xs mx-auto">Hãy nhìn lên máy chiếu của Thầy/Cô. Khi câu hỏi xuất hiện, 2 nút bấm sẽ sáng lên ngay lập tức!</p>
+      </div>
+
+      <!-- Khu vực 2 nút ĐÚNG / SAI khổng lồ -->
+      <div id="playerBuzzerState" class="hidden flex-1 flex flex-col justify-center gap-4 my-auto py-4">
+        <div class="text-center text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">
+          CHỌN NHANH ĐÁP ÁN:
+        </div>
+        
+        <!-- Nút ĐÚNG Khổng Lồ -->
+        <button onclick="playerSubmitAnswer(true)" class="flex-1 min-h-[140px] bg-gradient-to-b from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 active:from-emerald-800 active:to-emerald-900 text-white rounded-3xl font-black text-3xl shadow-xl shadow-emerald-950/60 flex items-center justify-center gap-3 border-4 border-emerald-400/40 btn-bounce transition">
+          <i class="fa-solid fa-circle-check text-4xl"></i>
+          <span>ĐÚNG</span>
+        </button>
+
+        <!-- Nút SAI Khổng Lồ -->
+        <button onclick="playerSubmitAnswer(false)" class="flex-1 min-h-[140px] bg-gradient-to-b from-rose-500 to-rose-700 hover:from-rose-400 hover:to-rose-600 active:from-rose-800 active:to-rose-900 text-white rounded-3xl font-black text-3xl shadow-xl shadow-rose-950/60 flex items-center justify-center gap-3 border-4 border-rose-400/40 btn-bounce transition">
+          <i class="fa-solid fa-circle-xmark text-4xl"></i>
+          <span>SAI</span>
+        </button>
+      </div>
+
+      <!-- Trạng thái sau khi bấm (Đã gửi câu trả lời) -->
+      <div id="playerAnsweredState" class="hidden my-auto text-center py-10 bg-slate-900 border border-slate-800 rounded-3xl p-6">
+        <div id="playerAnswerIcon" class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 text-3xl"></div>
+        <h3 id="playerAnswerTitle" class="text-xl font-black">---</h3>
+        <p class="text-xs text-slate-400 mt-1">Tốc độ phản xạ: <b id="playerMySpeed" class="text-amber-300 font-mono">0.00s</b></p>
+        <p class="text-xs text-slate-500 mt-4 italic">Hãy theo dõi máy chiếu để xem bạn có phải người nhanh nhất lớp không nhé!</p>
+      </div>
+
+      <div class="text-center text-[11px] text-slate-600 pt-2">
+        Bắt lỗi Kỹ sư nông nghiệp • Phiên bản Học sinh
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 4. MODAL: VÒNG XOAY THƯỞNG ĐIỂM MAY MẮN    -->
+  <!-- ========================================== -->
+  <div id="spinWheelModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div class="bg-slate-900 border-2 border-amber-500/50 rounded-3xl p-6 max-w-md w-full shadow-2xl text-center relative overflow-hidden">
+      <button onclick="closeSpinWheelModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white p-2">
+        <i class="fa-solid fa-xmark text-xl"></i>
+      </button>
+
+      <span class="px-3 py-1 bg-amber-500/20 text-amber-300 text-xs font-black uppercase tracking-wider rounded-lg border border-amber-500/30">
+        VÒNG XOAY ĐIỂM THƯỞNG
+      </span>
+      <h3 class="text-xl font-extrabold text-white mt-2 mb-1">Thưởng cho: <span id="spinForWinnerName" class="text-amber-400">---</span></h3>
+      <p class="text-xs text-slate-400 mb-4">Mức điểm may mắn từ 0.25đ đến 1.0đ hoặc x2!</p>
+
+      <!-- Vòng xoay Canvas -->
+      <div class="relative w-64 h-64 mx-auto my-2">
+        <!-- Kim chỉ vòng xoay -->
+        <div class="absolute -top-3 left-1/2 transform -translate-x-1/2 z-20 text-amber-300 text-3xl filter drop-shadow">
+          <i class="fa-solid fa-location-pin"></i>
+        </div>
+        <canvas id="wheelCanvas" width="256" height="256" class="w-full h-full rounded-full"></canvas>
+      </div>
+
+      <div id="spinResultBox" class="hidden my-3 p-3 bg-amber-500/20 border border-amber-500/40 rounded-xl">
+        <span class="text-xs text-amber-300 font-bold block uppercase">KẾT QUẢ QUAY THƯỞNG</span>
+        <span id="spinResultText" class="text-2xl font-black text-amber-400">+0.50 Điểm</span>
+      </div>
+
+      <button id="spinWheelBtn" onclick="executeSpin()" class="w-full mt-4 py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 rounded-xl font-black text-base shadow-lg shadow-orange-500/30 transition btn-bounce">
+        QUAY NGAY 🎲
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 5. MODAL: CÀI ĐẶT THỜI GIAN & HỆ THỐNG     -->
+  <!-- ========================================== -->
+  <div id="settingsModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+        <h3 class="text-lg font-black text-white flex items-center gap-2">
+          <i class="fa-solid fa-sliders text-amber-400"></i>
+          CÀI ĐẶT THỜI GIAN & PHÒNG
+        </h3>
+        <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4 text-sm">
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Thời gian đếm ngược mỗi câu:</label>
+          <select id="settingTimerSelect" class="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl font-bold text-amber-300 focus:outline-none focus:border-emerald-500">
+            <option value="5">5 Giây (Siêu tốc)</option>
+            <option value="10">10 Giây</option>
+            <option value="15" selected>15 Giây (Khuyên dùng)</option>
+            <option value="20">20 Giây</option>
+            <option value="30">30 Giây</option>
+            <option value="45">45 Giây</option>
+            <option value="60">60 Giây (Thong thả)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Âm thanh hiệu ứng & Nhạc nền:</label>
+          <div class="flex items-center gap-3 bg-slate-950 p-3 rounded-xl border border-slate-800">
+            <input type="checkbox" id="settingSoundToggle" checked class="w-5 h-5 accent-emerald-500 rounded cursor-pointer">
+            <label for="settingSoundToggle" class="text-slate-300 text-xs font-semibold cursor-pointer">Bật âm thanh điện tử vui nhộn (Web Audio API)</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6 pt-4 border-t border-slate-800 flex justify-end gap-2">
+        <button onclick="closeSettingsModal()" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold text-xs">Đóng</button>
+        <button onclick="saveSettings()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs">Lưu Cài Đặt</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 6. MODAL: QUẢN LÝ EXCEL & CÂU HỎI          -->
+  <!-- ========================================== -->
+  <div id="excelModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-2xl w-full shadow-2xl flex flex-col max-h-[88vh]">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+        <h3 class="text-lg font-black text-white flex items-center gap-2">
+          <i class="fa-solid fa-file-excel text-emerald-400"></i>
+          NGÂN HÀNG CÂU HỎI & CHÈN FILE EXCEL
+        </h3>
+        <button onclick="closeExcelModal()" class="text-slate-400 hover:text-white">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Các nút thao tác Excel -->
+      <div class="flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-950 rounded-2xl border border-slate-800 mb-4 text-xs">
+        <div class="flex items-center gap-2">
+          <label class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl cursor-pointer transition flex items-center gap-2">
+            <i class="fa-solid fa-file-arrow-up"></i>
+            <span>Chọn File Excel (.xlsx, .xls)</span>
+            <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelUpload(event)">
+          </label>
+          <button onclick="downloadExcelTemplate()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition flex items-center gap-2">
+            <i class="fa-solid fa-download"></i>
+            <span>Tải File Mẫu</span>
+          </button>
+        </div>
+        <button onclick="restoreDefaultQuestions()" class="px-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold rounded-xl border border-amber-500/40 transition">
+          Khôi Phục 10 Câu Mặc Định
+        </button>
+      </div>
+
+      <!-- Danh sách câu hỏi xem trước -->
+      <div class="flex-1 overflow-y-auto pr-1 space-y-2 mb-4" id="excelQuestionsPreviewList"></div>
+
+      <div class="pt-3 border-t border-slate-800 flex justify-end">
+        <button onclick="closeExcelModal()" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs">
+          Hoàn Tất
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- LOGIC JAVASCRIPT HỆ THỐNG TOÀN DIỆN        -->
+  <!-- ========================================== -->
+  <script>
+    // 1. DỮ LIỆU CÂU HỎI MẶC ĐỊNH (CHUẨN BÀI 5 CÔNG NGHỆ 10)
+    const DEFAULT_QUESTIONS = [
+      {
+        q: "Xơ dừa tươi chỉ cần phơi khô rồi ngâm nước sạch từ 2 đến 3 ngày là có thể đem đi trồng cây con an toàn ngay lập tức.",
+        a: false,
+        exp: "SAI! Sau khi ngâm nước sạch, bắt buộc phải ngâm tiếp trong nước vôi (tỉ lệ 2 kg vôi/100 lít nước) từ 5 – 7 ngày để khử sạch tannin và lignin độc hại."
+      },
+      {
+        q: "Giá thể than bùn có khả năng giữ ẩm rất tốt, đồng thời giữ lại chất dinh dưỡng giúp hạn chế bị rửa trôi sau mỗi lần tưới nước.",
+        a: true,
+        exp: "ĐÚNG! Đây là ưu điểm vượt trội của than bùn nhờ cấu trúc xốp nhẹ và khả năng ngậm giữ dưỡng chất tuyệt vời."
+      },
+      {
+        q: "Khi sản xuất giá thể trấu hun, ta nên đốt thật thoáng khí ngoài trời để vỏ trấu cháy thành tro trắng mịn giúp rễ cây dễ bám dính hơn.",
+        a: false,
+        exp: "SAI! Phải đốt trong điều kiện kị khí (thiếu oxy) để thành trấu hun đen nhánh. Nếu đốt thành tro trắng, vật liệu sẽ bị nén mịn gây úng và thối rễ."
+      },
+      {
+        q: "Trong những ngày hè nắng nóng gay gắt, phủ thật nhiều trấu hun màu đen lên bề mặt chậu sẽ giúp giữ mát tối đa cho bộ rễ cây trồng.",
+        a: false,
+        exp: "SAI! Trấu hun có màu đen hấp thụ nhiệt rất lớn, nếu dùng nhiều dưới trời nắng gắt sẽ làm nóng bầu rễ cây."
+      },
+      {
+        q: "Mùn cưa lấy từ các xưởng xẻ gỗ cần phải qua khâu ủ với chế phẩm vi sinh vật nhằm mục đích phân giải cellulose và ức chế các mầm bệnh.",
+        a: true,
+        exp: "ĐÚNG! Mùn cưa tươi chứa chủ yếu cellulose khó tiêu và nấm mốc, khâu ủ chế phẩm vi sinh là bắt buộc."
+      },
+      {
+        q: "Vì giá thể than bùn đã chứa đầy đủ và cân đối tất cả các chất dinh dưỡng thiết yếu nên khi trồng cây ta hoàn toàn không cần bón thêm phân bón.",
+        a: false,
+        exp: "SAI! Nhược điểm của than bùn là hàm lượng dinh dưỡng thiết yếu khá thấp, khi trồng bắt buộc phải bổ sung thêm dưỡng chất."
+      },
+      {
+        q: "Vào mùa đông giá rét, bón bổ sung giá thể trấu hun sẽ giúp cây cứng cáp và tăng sức chống rét vì trong trấu hun chứa hàm lượng kali lớn.",
+        a: true,
+        exp: "ĐÚNG! Trấu hun rất giàu khoáng kali (K), giúp tế bào thân cây cứng cáp và tăng sức đề kháng chống rét."
+      },
+      {
+        q: "Nhược điểm lớn nhất của giá thể mùn cưa là giữ ẩm không đồng đều và có độ thông thoáng khí tương đối thấp do thành phần chủ yếu là cellulose.",
+        a: true,
+        exp: "ĐÚNG! Sợi cellulose dày đặc khiến mùn cưa bị nén, nước đọng loang lổ và rễ khó thở nếu chưa ủ hoai mục hoàn toàn."
+      },
+      {
+        q: "Điểm chung nổi bật ở Bước 3 trong quy trình sản xuất của cả 4 loại giá thể hữu cơ (than bùn, mùn cưa, trấu hun, xơ dừa) là đều phối trộn hoặc ủ với chế phẩm vi sinh vật.",
+        a: true,
+        exp: "ĐÚNG! Cả 4 loại giá thể hữu cơ tự nhiên đều ứng dụng công nghệ vi sinh để khử mầm bệnh hoặc phân giải chất khó tiêu."
+      },
+      {
+        q: "Giá thể hữu cơ tự nhiên như mùn cưa, trấu hun, xơ dừa có độ bền vĩnh cửu, không bao giờ bị mục nát sau nhiều năm trồng.",
+        a: false,
+        exp: "SAI! Giá thể hữu cơ tự nhiên sẽ bị vi sinh vật phân giải dần thành chất mùn hoai mục theo thời gian (chỉ có giá thể trơ cứng như viên gốm nung mới có độ bền rất cao)."
+      }
+    ];
+
+    // 2. BIẾN TRẠNG THÁI TOÀN CỤC
+    let currentQuestions = [...DEFAULT_QUESTIONS];
+    let currentRole = null; // 'host' hoặc 'player'
+    let roomCode = "";
+    let mqttClient = null;
+    let localChannel = null;
+
+    // Cài đặt
+    let countdownDuration = 15;
+    let soundEnabled = true;
+
+    // Biến Host
+    let currentQIndex = 0;
+    let timerInterval = null;
+    let questionStartTime = 0;
+    let answersReceived = []; // Lưu danh sách học sinh trả lời trong câu hiện tại
+    let fastestWinner = null;
+    let playersScores = {}; // Lưu điểm: { "Tên": điểm }
+    let onlineCount = 0;
+
+    // Biến Player
+    let myPlayerName = "";
+    let myScore = 0;
+    let hasAnsweredCurrentQ = false;
+
+    // 3. KHỞI TẠO ÂM THANH (WEB AUDIO API)
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playBeep(type = 'ping') {
+      if (!soundEnabled) return;
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      if (type === 'ping') {
+        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1000, audioCtx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+      } else if (type === 'correct') {
+        osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+        osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
+        osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2); // G5
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.35);
+      } else if (type === 'wheel') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.05);
+      }
+    }
+
+    // 4. CHỌN VAI TRÒ (HOST HOẶC PLAYER)
+    function chooseRole(role) {
+      currentRole = role;
+      document.getElementById('roleScreen').classList.add('hidden');
+      
+      // Khởi tạo BroadcastChannel nội bộ (chạy mượt giữa các tab cùng trình duyệt)
+      localChannel = new BroadcastChannel("bat_loi_ky_su_channel");
+      localChannel.onmessage = (event) => handleIncomingMessage(event.data);
+
+      if (role === 'host') {
+        initHost();
+      } else {
+        initPlayer();
+      }
+    }
+
+    // 5. KẾT NỐI MQTT BROKER CÔNG CỘNG (WEBSOCKETS)
+    function connectMQTT(room) {
+      const brokerUrl = "wss://broker.hivemq.com:8884/mqtt";
+      const clientId = "ky_su_" + (currentRole === 'host' ? "H_" : "P_") + Math.random().toString(16).substring(2, 8);
+      
+      try {
+        mqttClient = mqtt.connect(brokerUrl, { clientId, clean: true, connectTimeout: 4000 });
+        mqttClient.on('connect', () => {
+          const topic = `batloikysunongnghiep/${room}/#`;
+          mqttClient.subscribe(topic);
+        });
+        mqttClient.on('message', (topic, message) => {
+          try {
+            const data = JSON.parse(message.toString());
+            handleIncomingMessage(data);
+          } catch (e) { console.error(e); }
+        });
+      } catch (err) {
+        console.warn("Dùng BroadcastChannel nội bộ thay thế MQTT:", err);
+      }
+    }
+
+    function sendMessage(action, payload) {
+      const msg = { action, payload, room: roomCode, timestamp: Date.now() };
+      // Gửi qua BroadcastChannel
+      if (localChannel) localChannel.postMessage(msg);
+      // Gửi qua MQTT
+      if (mqttClient && mqttClient.connected) {
+        mqttClient.publish(`batloikysunongnghiep/${roomCode}/${action}`, JSON.stringify(msg));
+      }
+    }
+
+    // Xử lý gói tin nhận được
+    function handleIncomingMessage(msg) {
+      if (msg.room !== roomCode) return;
+
+      // Xử lý trên màn hình HOST
+      if (currentRole === 'host') {
+        if (msg.action === 'PLAYER_JOIN') {
+          onlineCount++;
+          document.getElementById('onlinePlayerCount').innerText = `${onlineCount} học sinh`;
+          if (!playersScores[msg.payload.name]) {
+            playersScores[msg.payload.name] = 0;
+            renderLeaderboard();
+          }
+        } else if (msg.action === 'SUBMIT_ANSWER') {
+          handleStudentAnswer(msg.payload);
+        }
+      }
+
+      // Xử lý trên màn hình PLAYER
+      if (currentRole === 'player') {
+        if (msg.action === 'NEW_QUESTION') {
+          onPlayerReceiveQuestion(msg.payload);
+        } else if (msg.action === 'REVEAL_ANSWER') {
+          onPlayerAnswerRevealed(msg.payload);
+        } else if (msg.action === 'SCORE_AWARDED') {
+          if (msg.payload.winnerName === myPlayerName) {
+            myScore = msg.payload.newScore;
+            document.getElementById('playerDisplayMyScore').innerText = myScore.toFixed(2);
+            confetti({ particleCount: 50, spread: 60 });
+          }
+        }
+      }
+    }
+
+    // ==========================================
+    // LOGIC CHO MÀN HÌNH HOST (GIÁO VIÊN)
+    // ==========================================
+    function initHost() {
+      document.getElementById('hostView').classList.remove('hidden');
+      
+      // Tạo mã phòng ngẫu nhiên 4 chữ số
+      roomCode = Math.floor(1000 + Math.random() * 9000).toString();
+      document.getElementById('hostRoomCode').innerText = roomCode;
+      document.getElementById('hostRoomCodeText').innerText = roomCode;
+      
+      // Tạo mã QR
+      const joinUrl = window.location.href.split('?')[0] + `?room=${roomCode}&role=player`;
+      document.getElementById('hostQrCodeContainer').innerHTML = "";
+      new QRCode(document.getElementById('hostQrCodeContainer'), {
+        text: joinUrl,
+        width: 140,
+        height: 140,
+        colorDark: "#022c22",
+        colorLight: "#ffffff"
+      });
+
+      connectMQTT(roomCode);
+      updateHostQuestionDisplay();
+      renderQuestionsPreview();
+      drawWheel();
+    }
+
+    function updateHostQuestionDisplay() {
+      const q = currentQuestions[currentQIndex];
+      document.getElementById('currentQuestionNum').innerText = currentQIndex + 1;
+      document.getElementById('totalQuestionsNum').innerText = currentQuestions.length;
+      document.getElementById('hostQuestionText').innerText = `"${q.q}"`;
+      document.getElementById('hostExplanationText').innerText = q.exp;
+      document.getElementById('questionCountBadge').innerText = currentQuestions.length;
+
+      // Ẩn bảng kết quả câu cũ
+      document.getElementById('hostExplanationBox').classList.add('hidden');
+      document.getElementById('fastestWinnerCard').classList.add('hidden');
+      document.getElementById('revealAnswerBtn').classList.add('hidden');
+      document.getElementById('startQuestionBtn').classList.remove('hidden');
+      document.getElementById('countdownDisplay').innerText = countdownDuration;
+    }
+
+    function prevQuestion() {
+      if (currentQIndex > 0) {
+        currentQIndex--;
+        updateHostQuestionDisplay();
+      }
+    }
+
+    function nextQuestion() {
+      if (currentQIndex < currentQuestions.length - 1) {
+        currentQIndex++;
+        updateHostQuestionDisplay();
+      }
+    }
+
+    function broadcastQuestion() {
+      const q = currentQuestions[currentQIndex];
+      answersReceived = [];
+      fastestWinner = null;
+      questionStartTime = Date.now();
+
+      // Phát lệnh sang tất cả thiết bị học sinh
+      sendMessage('NEW_QUESTION', {
+        questionIndex: currentQIndex,
+        duration: countdownDuration
+      });
+
+      document.getElementById('startQuestionBtn').classList.add('hidden');
+      document.getElementById('revealAnswerBtn').classList.remove('hidden');
+      document.getElementById('fastestWinnerCard').classList.add('hidden');
+      document.getElementById('hostExplanationBox').classList.add('hidden');
+
+      // Đếm ngược thời gian
+      let timeLeft = countdownDuration;
+      document.getElementById('countdownDisplay').innerText = timeLeft;
+      clearInterval(timerInterval);
+      playBeep('ping');
+
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById('countdownDisplay').innerText = timeLeft;
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          revealAnswer();
+        }
+      }, 1000);
+    }
+
+    function handleStudentAnswer(data) {
+      // data: { name, answer, speed }
+      const q = currentQuestions[currentQIndex];
+      const isCorrect = (data.answer === q.a);
+
+      answersReceived.push({ ...data, isCorrect });
+
+      // Nếu chưa có ai nhanh nhất mà bạn này trả lời ĐÚNG
+      if (isCorrect && !fastestWinner) {
+        fastestWinner = data;
+        displayFastestWinner(data);
+      }
+    }
+
+    function displayFastestWinner(winner) {
+      document.getElementById('fastestWinnerCard').classList.remove('hidden');
+      document.getElementById('fastestWinnerCard').classList.add('flex');
+      document.getElementById('winnerName').innerText = winner.name;
+      document.getElementById('winnerSpeed').innerText = (winner.speed / 1000).toFixed(2) + 's';
+      document.getElementById('winnerAns').innerText = winner.answer ? "ĐÚNG" : "SAI";
+      
+      playBeep('correct');
+      confetti({ particleCount: 70, spread: 70, origin: { y: 0.6 } });
+    }
+
+    function revealAnswer() {
+      clearInterval(timerInterval);
+      const q = currentQuestions[currentQIndex];
+
+      document.getElementById('hostExplanationBox').classList.remove('hidden');
+      const badge = document.getElementById('correctAnswerBadge');
+      if (q.a === true) {
+        badge.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> <span class="text-emerald-400">ĐÁP ÁN: ĐÚNG (CHÍNH XÁC)</span>`;
+      } else {
+        badge.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-400"></i> <span class="text-rose-400">ĐÁP ÁN: SAI (BẮT LỖI KỸ SƯ)</span>`;
+      }
+
+      sendMessage('REVEAL_ANSWER', {
+        correctAnswer: q.a,
+        explanation: q.exp
+      });
+    }
+
+    function renderLeaderboard() {
+      const container = document.getElementById('leaderboardList');
+      const sorted = Object.entries(playersScores).sort((a, b) => b[1] - a[1]);
+
+      if (sorted.length === 0) {
+        container.innerHTML = `<div class="text-center py-8 text-xs text-slate-500">Chưa có điểm nào được ghi nhận</div>`;
+        return;
+      }
+
+      container.innerHTML = sorted.map(([name, score], index) => {
+        let rankBadge = `<span class="w-6 h-6 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-xs font-bold">${index + 1}</span>`;
+        if (index === 0) rankBadge = `<span class="w-6 h-6 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center text-xs font-black">🥇</span>`;
+        if (index === 1) rankBadge = `<span class="w-6 h-6 rounded-full bg-slate-300 text-slate-950 flex items-center justify-center text-xs font-black">🥈</span>`;
+        if (index === 2) rankBadge = `<span class="w-6 h-6 rounded-full bg-amber-700 text-white flex items-center justify-center text-xs font-black">🥉</span>`;
+
+        return `
+          <div class="flex items-center justify-between p-2.5 bg-slate-950/60 rounded-xl border border-slate-800/80 text-xs">
+            <div class="flex items-center gap-2.5">
+              ${rankBadge}
+              <span class="font-bold text-slate-200">${name}</span>
+            </div>
+            <span class="font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">${score.toFixed(2)} đ</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ==========================================
+    // LOGIC CHO MÀN HÌNH PLAYER (HỌC SINH)
+    // ==========================================
+    function initPlayer() {
+      document.getElementById('playerView').classList.remove('hidden');
+
+      // Tự động điền mã phòng nếu có trong URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlRoom = urlParams.get('room');
+      if (urlRoom) {
+        document.getElementById('playerRoomInput').value = urlRoom;
+      }
+    }
+
+    function playerJoinRoom() {
+      const room = document.getElementById('playerRoomInput').value.trim();
+      const name = document.getElementById('playerNameInput').value.trim();
+
+      if (!room || !name) {
+        alert("Vui lòng nhập đủ Mã Phòng và Tên của bạn!");
+        return;
+      }
+
+      roomCode = room;
+      myPlayerName = name;
+
+      document.getElementById('playerDisplayMyName').innerText = myPlayerName;
+      document.getElementById('playerLoginBox').classList.add('hidden');
+      document.getElementById('playerGameArea').classList.remove('hidden');
+
+      connectMQTT(roomCode);
+      setTimeout(() => {
+        sendMessage('PLAYER_JOIN', { name: myPlayerName });
+      }, 500);
+    }
+
+    function onPlayerReceiveQuestion(payload) {
+      hasAnsweredCurrentQ = false;
+      document.getElementById('playerWaitingState').classList.add('hidden');
+      document.getElementById('playerAnsweredState').classList.add('hidden');
+      document.getElementById('playerBuzzerState').classList.remove('hidden');
+
+      // Đếm ngược trên điện thoại
+      let timeLeft = payload.duration;
+      document.getElementById('playerCountdown').innerText = timeLeft;
+      playBeep('ping');
+
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        document.getElementById('playerCountdown').innerText = timeLeft;
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          if (!hasAnsweredCurrentQ) {
+            document.getElementById('playerBuzzerState').classList.add('hidden');
+            document.getElementById('playerWaitingState').classList.remove('hidden');
+          }
+        }
+      }, 1000);
+    }
+
+    function playerSubmitAnswer(choice) {
+      if (hasAnsweredCurrentQ) return;
+      hasAnsweredCurrentQ = true;
+      clearInterval(timerInterval);
+
+      const reactionTime = Date.now() - questionStartTime;
+
+      // Gửi đáp án về cho Host
+      sendMessage('SUBMIT_ANSWER', {
+        name: myPlayerName,
+        answer: choice,
+        speed: reactionTime
+      });
+
+      // Đổi giao diện học sinh sang trạng thái đã gửi
+      document.getElementById('playerBuzzerState').classList.add('hidden');
+      document.getElementById('playerAnsweredState').classList.remove('hidden');
+      
+      const icon = document.getElementById('playerAnswerIcon');
+      const title = document.getElementById('playerAnswerTitle');
+      if (choice) {
+        icon.className = "w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 text-3xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40";
+        icon.innerHTML = `<i class="fa-solid fa-circle-check"></i>`;
+        title.innerText = "BẠN ĐÃ CHỌN: ĐÚNG";
+        title.className = "text-xl font-black text-emerald-400";
+      } else {
+        icon.className = "w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 text-3xl bg-rose-500/20 text-rose-400 border border-rose-500/40";
+        icon.innerHTML = `<i class="fa-solid fa-circle-xmark"></i>`;
+        title.innerText = "BẠN ĐÃ CHỌN: SAI";
+        title.className = "text-xl font-black text-rose-400";
+      }
+      document.getElementById('playerMySpeed').innerText = (reactionTime / 1000).toFixed(2) + 's';
+      playBeep('ping');
+    }
+
+    function onPlayerAnswerRevealed(payload) {
+      // payload: { correctAnswer, explanation }
+    }
+
+    // ==========================================
+    // LOGIC CHO VÒNG XOAY ĐIỂM THƯỞNG MAY MẮN
+    // ==========================================
+    const WHEEL_SECTORS = [
+      { label: "+0.25", val: 0.25, color: "#059669" },
+      { label: "+0.50", val: 0.50, color: "#d97706" },
+      { label: "+0.75", val: 0.75, color: "#2563eb" },
+      { label: "+1.00", val: 1.00, color: "#dc2626" },
+      { label: "+0.25", val: 0.25, color: "#10b981" },
+      { label: "+0.50", val: 0.50, color: "#f59e0b" },
+      { label: "+0.75", val: 0.75, color: "#3b82f6" },
+      { label: "x2 ĐIỂM", val: 'x2', color: "#7c3aed" }
+    ];
+
+    let wheelAngle = 0;
+    let isSpinning = false;
+
+    function drawWheel() {
+      const canvas = document.getElementById('wheelCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const numSectors = WHEEL_SECTORS.length;
+      const arc = (2 * Math.PI) / numSectors;
+      const radius = canvas.width / 2;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      WHEEL_SECTORS.forEach((sec, i) => {
+        const angle = wheelAngle + i * arc;
+        ctx.beginPath();
+        ctx.fillStyle = sec.color;
+        ctx.moveTo(radius, radius);
+        ctx.arc(radius, radius, radius - 4, angle, angle + arc);
+        ctx.lineTo(radius, radius);
+        ctx.fill();
+        ctx.stroke();
+
+        // Chữ trên vòng xoay
+        ctx.save();
+        ctx.translate(radius, radius);
+        ctx.rotate(angle + arc / 2);
+        ctx.textAlign = "right";
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 15px Nunito";
+        ctx.fillText(sec.label, radius - 20, 5);
+        ctx.restore();
+      });
+
+      // Tâm vòng xoay
+      ctx.beginPath();
+      ctx.arc(radius, radius, 22, 0, 2 * Math.PI);
+      ctx.fillStyle = "#0f172a";
+      ctx.fill();
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = "#f59e0b";
+      ctx.stroke();
+    }
+
+    function openSpinWheelModal() {
+      if (!fastestWinner) return;
+      document.getElementById('spinForWinnerName').innerText = fastestWinner.name;
+      document.getElementById('spinResultBox').classList.add('hidden');
+      document.getElementById('spinWheelBtn').disabled = false;
+      document.getElementById('spinWheelModal').classList.remove('hidden');
+      drawWheel();
+    }
+
+    function closeSpinWheelModal() {
+      document.getElementById('spinWheelModal').classList.add('hidden');
+    }
+
+    function executeSpin() {
+      if (isSpinning) return;
+      isSpinning = true;
+      document.getElementById('spinWheelBtn').disabled = true;
+
+      const spinRounds = 5 + Math.random() * 4;
+      const extraAngle = Math.random() * Math.PI * 2;
+      const totalRotation = spinRounds * Math.PI * 2 + extraAngle;
+      const duration = 4000;
+      const start = performance.now();
+      const initialAngle = wheelAngle;
+
+      function animate(time) {
+        const elapsed = time - start;
+        const progress = Math.min(elapsed / duration, 1);
+        // Ease out quad
+        const ease = 1 - (1 - progress) * (1 - progress);
+        wheelAngle = initialAngle + totalRotation * ease;
+        drawWheel();
+
+        if (Math.random() < 0.2) playBeep('wheel');
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          isSpinning = false;
+          calcSpinResult();
+        }
+      }
+      requestAnimationFrame(animate);
+    }
+
+    function calcSpinResult() {
+      const numSectors = WHEEL_SECTORS.length;
+      const arc = (2 * Math.PI) / numSectors;
+      // Góc kim chỉ nằm ở đỉnh (3 * PI / 2)
+      let normalizedAngle = (wheelAngle % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+      let pointerAngle = (1.5 * Math.PI - normalizedAngle + 2 * Math.PI) % (2 * Math.PI);
+      let sectorIndex = Math.floor(pointerAngle / arc) % numSectors;
+
+      const prize = WHEEL_SECTORS[sectorIndex];
+      const winner = fastestWinner.name;
+
+      if (!playersScores[winner]) playersScores[winner] = 0;
+
+      if (prize.val === 'x2') {
+        playersScores[winner] = (playersScores[winner] === 0) ? 1.0 : playersScores[winner] * 2;
+      } else {
+        playersScores[winner] += prize.val;
+      }
+
+      document.getElementById('spinResultBox').classList.remove('hidden');
+      document.getElementById('spinResultText').innerText = prize.val === 'x2' ? "NHÂN ĐÔI ĐIỂM (x2)!" : `+${prize.val} ĐIỂM!`;
+      
+      playBeep('correct');
+      confetti({ particleCount: 100, spread: 80 });
+
+      renderLeaderboard();
+
+      // Thông báo cập nhật điểm cho người chơi
+      sendMessage('SCORE_AWARDED', {
+        winnerName: winner,
+        newScore: playersScores[winner]
+      });
+    }
+
+    // ==========================================
+    // LOGIC CÀI ĐẶT & QUẢN LÝ EXCEL
+    // ==========================================
+    function openSettingsModal() {
+      document.getElementById('settingTimerSelect').value = countdownDuration;
+      document.getElementById('settingSoundToggle').checked = soundEnabled;
+      document.getElementById('settingsModal').classList.remove('hidden');
+    }
+
+    function closeSettingsModal() {
+      document.getElementById('settingsModal').classList.add('hidden');
+    }
+
+    function saveSettings() {
+      countdownDuration = parseInt(document.getElementById('settingTimerSelect').value);
+      soundEnabled = document.getElementById('settingSoundToggle').checked;
+      document.getElementById('hostTimerLabel').innerText = `${countdownDuration}s`;
+      document.getElementById('countdownDisplay').innerText = countdownDuration;
+      closeSettingsModal();
+    }
+
+    function openExcelModal() {
+      renderQuestionsPreview();
+      document.getElementById('excelModal').classList.remove('hidden');
+    }
+
+    function closeExcelModal() {
+      document.getElementById('excelModal').classList.add('hidden');
+      updateHostQuestionDisplay();
+    }
+
+    function renderQuestionsPreview() {
+      const container = document.getElementById('excelQuestionsPreviewList');
+      container.innerHTML = currentQuestions.map((q, idx) => `
+        <div class="p-3 bg-slate-950/80 rounded-xl border border-slate-800 text-xs flex items-start justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="font-bold text-amber-400">Câu ${idx + 1}:</span>
+              <span class="px-2 py-0.5 rounded font-black text-[10px] ${q.a ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'}">
+                ${q.a ? 'ĐÚNG' : 'SAI'}
+              </span>
+            </div>
+            <p class="text-slate-200 font-semibold mb-1">"${q.q}"</p>
+            <p class="text-slate-400 text-[11px] italic">Giải thích: ${q.exp}</p>
+          </div>
+          <button onclick="removeQuestion(${idx})" class="text-slate-600 hover:text-rose-400 p-1">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function removeQuestion(index) {
+      if (currentQuestions.length <= 1) {
+        alert("Cần giữ ít nhất 1 câu hỏi!");
+        return;
+      }
+      currentQuestions.splice(index, 1);
+      if (currentQIndex >= currentQuestions.length) currentQIndex = currentQuestions.length - 1;
+      renderQuestionsPreview();
+    }
+
+    function restoreDefaultQuestions() {
+      currentQuestions = [...DEFAULT_QUESTIONS];
+      currentQIndex = 0;
+      renderQuestionsPreview();
+      alert("Đã khôi phục 10 câu hỏi mặc định của Bài 5!");
+    }
+
+    // Tải và đọc File Excel (.xlsx)
+    function handleExcelUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const data = new Uint8Array(evt.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+          // Bỏ dòng tiêu đề đầu tiên, lọc các dòng có dữ liệu
+          const parsedQuestions = [];
+          for (let i = 1; i < json.length; i++) {
+            const row = json[i];
+            if (row && row[0]) {
+              const qText = String(row[0]).trim();
+              const ansRaw = String(row[1] || '').trim().toUpperCase();
+              const expText = String(row[2] || '').trim();
+
+              const isTrue = (ansRaw === 'ĐÚNG' || ansRaw === 'TRUE' || ansRaw === '1' || ansRaw === 'D');
+              parsedQuestions.push({
+                q: qText,
+                a: isTrue,
+                exp: expText || (isTrue ? "Đáp án là ĐÚNG." : "Đáp án là SAI.")
+              });
+            }
+          }
+
+          if (parsedQuestions.length > 0) {
+            currentQuestions = parsedQuestions;
+            currentQIndex = 0;
+            renderQuestionsPreview();
+            alert(`🎉 Đã nhập thành công ${parsedQuestions.length} câu hỏi từ file Excel!`);
+          } else {
+            alert("File Excel không đúng định dạng cột hoặc không có dữ liệu!");
+          }
+        } catch (err) {
+          console.error(err);
+          alert("Lỗi khi đọc file Excel. Vui lòng kiểm tra lại file mẫu!");
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // Tải File Excel Mẫu
+    function downloadExcelTemplate() {
+      const templateData = [
+        ["Câu hỏi (Phát biểu của kỹ sư)", "Đáp án (Ghi ĐÚNG hoặc SAI)", "Giải thích sư phạm"],
+        ["Xơ dừa tươi chỉ cần phơi khô rồi ngâm nước sạch là dùng được ngay.", "SAI", "Bắt buộc phải ngâm tiếp nước vôi 5 - 7 ngày để khử sạch tannin và lignin."],
+        ["Than bùn giữ ẩm tốt và giữ dinh dưỡng không bị rửa trôi.", "ĐÚNG", "Đây là ưu điểm nổi bật của than bùn."],
+        ["Vào mùa đông bón bổ sung trấu hun giúp cây chống rét vì giàu kali.", "ĐÚNG", "Trấu hun chứa hàm lượng kali rất cao."]
+      ];
+
+      const ws = XLSX.utils.aoa_to_sheet(templateData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Mau_Cau_Hoi");
+      XLSX.writeFile(wb, "Mau_Cau_Hoi_Bat_Loi_Ky_Su.xlsx");
+    }
+
+    // Kiểm tra tham số URL để tự động chọn chế độ Player khi quét mã QR
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('role') === 'player') {
+        chooseRole('player');
+      }
+    });
+  </script>
+</body>
+            </html>
